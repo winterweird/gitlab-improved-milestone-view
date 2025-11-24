@@ -308,13 +308,14 @@ const fetchIssueDetails = async ({ project, issue }) => {
 
 (() => {
   // polyfill
+  let browser;
   if (chrome !== undefined) {
-    const browser = chrome;
+    browser = chrome;
   }
 
   // Main work
 
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "fetchIssueDetails") {
       fetchIssueDetails({
         project: request.project,

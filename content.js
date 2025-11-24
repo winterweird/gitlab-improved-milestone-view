@@ -57,7 +57,7 @@
   };
 
   const groupSubtasksUnderIssue = (node) => {
-    chrome.runtime.sendMessage(
+    browser.runtime.sendMessage(
       {
         action: "fetchIssueDetails",
         issue: issueId(node),
