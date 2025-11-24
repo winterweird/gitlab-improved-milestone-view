@@ -22,7 +22,7 @@ In addition it highlights in-progress tasks.
 
 1. Navigate to `about:debugging#/runtime/this-firefox`
 2. Click "Load Temporary Add-on"
-3. Select any file
+3. Select any file within the extension folder
 
 ### Chrome
 
