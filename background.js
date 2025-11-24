@@ -306,16 +306,23 @@ const fetchIssueDetails = async ({ project, issue }) => {
   return issueJson;
 };
 
-// Main work
-
-browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "fetchIssueDetails") {
-    fetchIssueDetails({ project: request.project, issue: request.issue }).then(
-      (issue) => {
-        console.log("ISSUE:", issue);
-        sendResponse(issue);
-      },
-    );
-    return true;
+(() => {
+  // polyfill
+  if (chrome !== undefined) {
+    const browser = chrome;
   }
-});
+
+  // Main work
+
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "fetchIssueDetails") {
+      fetchIssueDetails({
+        project: request.project,
+        issue: request.issue,
+      }).then((issue) => {
+        sendResponse(issue);
+      });
+      return true;
+    }
+  });
+})();

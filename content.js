@@ -1,14 +1,18 @@
 (() => {
+  // polyfill
+  if (chrome !== undefined) {
+    window.browser = chrome;
+  }
   const issueBoard = document.querySelector("#tab-issues");
-
-  const project = document
-    .querySelector("[data-project-id]")
-    .getAttribute("data-project-id");
 
   if (!issueBoard) {
     console.error("Issue board element not found.");
     return;
   }
+
+  const project = document
+    .querySelector("[data-project-id]")
+    .getAttribute("data-project-id");
 
   const getIssueNode = (iid) => {
     return issueBoard.querySelector(
@@ -53,7 +57,7 @@
   };
 
   const groupSubtasksUnderIssue = (node) => {
-    browser.runtime.sendMessage(
+    chrome.runtime.sendMessage(
       {
         action: "fetchIssueDetails",
         issue: issueId(node),
@@ -102,7 +106,6 @@
           }
 
           if (issueType(node) === "issue") {
-            console.log("GOUND ISSUE");
             groupSubtasksUnderIssue(node);
           }
         });
