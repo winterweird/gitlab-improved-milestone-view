@@ -6,6 +6,11 @@ subtasks and parent tasks more structured and easier to understand.
 
 In addition it highlights in-progress tasks.
 
+**Disclaimer:** This is a [bodge](https://en.wiktionary.org/wiki/bodge#Verb)
+which may not hold up against the ever-changing markup of the Gitlab UI. Expect
+this to stop working at any moment. I'm not committing to bodging it again when
+it breaks.
+
 ## Screenshots
 
 **Before:**
