@@ -279,7 +279,18 @@
 
       // Style: highlight in progress
       if (currentFlags.highlightInProgress && status === "In progress") {
-        node.style.backgroundColor = "lightgreen";
+        const isIssueNode = issueType(node) === "issue";
+        // If this is a parent issue that currently has grouped child tasks,
+        // avoid highlighting it; otherwise all children would visually appear
+        // to be "in progress" as well due to the shared background.
+        const hasGroupedChildren =
+          isIssueNode && !!node.querySelector("ul li");
+
+        if (!hasGroupedChildren) {
+          node.style.backgroundColor = "lightgreen";
+        } else {
+          node.style.backgroundColor = "";
+        }
       } else {
         // When highlight is disabled (or status changes), always clear the
         // background color. Grouping no longer relies on this property, so
