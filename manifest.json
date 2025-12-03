@@ -3,9 +3,12 @@
   "name": "GitLab Milestone Restructure",
   "version": "1.0",
   "description": "Restructures GitLab milestone issue boards to group parent and child issues.",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "storage", "tabs"],
   "host_permissions": ["https://gitlab.com/*"],
-  "action": {},
+  "action": {
+    "default_title": "GitLab Milestone Restructure",
+    "default_popup": "popup.html"
+  },
   "background": {
     "service_worker": "background.js",
     "scripts": ["background.js"]
