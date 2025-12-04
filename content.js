@@ -241,8 +241,11 @@
       const taskCount = currentFlags.separateTaskCounts ? taskOnlyItems.length : 0;
 
       const weightTotal = workItems.reduce((sum, item) => sum + getWorkItemWeight(item), 0);
-      const { issueSpan } = getColumnHeaderStatNodes(list);
-      let { taskSpan, weightSpan } = getColumnHeaderStatNodes(list);
+      let {
+        issueSpan,
+        taskSpan,
+        weightSpan,
+      } = getColumnHeaderStatNodes(list);
       const columnTitle =
         list.closest(".gl-card")?.querySelector(".gl-card-header")?.innerText?.trim() || "";
       console.log(
