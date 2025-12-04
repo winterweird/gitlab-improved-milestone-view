@@ -17,6 +17,7 @@
     highlightInReview: true,
     muteDone: true,
     separateTaskCounts: false,
+    inReviewBoard: false,
   };
 
   const groupChildrenCheckbox = document.getElementById("flag-group-children");
@@ -30,6 +31,7 @@
   const separateTaskCountsCheckbox = document.getElementById(
     "flag-separate-task-counts",
   );
+  const inReviewBoardCheckbox = document.getElementById("flag-in-review-board");
 
   const loadFlags = () => {
     // Use storage.local so flags persist reliably for unpacked/temporary installs.
@@ -41,6 +43,7 @@
       highlightInReviewCheckbox.checked = !!flags.highlightInReview;
       muteDoneCheckbox.checked = !!flags.muteDone;
       separateTaskCountsCheckbox.checked = !!flags.separateTaskCounts;
+      inReviewBoardCheckbox.checked = !!flags.inReviewBoard;
     });
   };
 
@@ -51,6 +54,7 @@
       highlightInReview: highlightInReviewCheckbox.checked,
       muteDone: muteDoneCheckbox.checked,
       separateTaskCounts: separateTaskCountsCheckbox.checked,
+      inReviewBoard: inReviewBoardCheckbox.checked,
     };
 
     console.log("[gitlab-milestone][popup] Persisting flags:", flags);
@@ -79,6 +83,7 @@
   muteDoneCheckbox.addEventListener("change", persistFlags);
   highlightInReviewCheckbox.addEventListener("change", persistFlags);
   separateTaskCountsCheckbox.addEventListener("change", persistFlags);
+  inReviewBoardCheckbox.addEventListener("change", persistFlags);
 
   loadFlags();
 })();

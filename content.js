@@ -5,7 +5,9 @@
   }
 
   if (typeof browser === "undefined") {
-    console.warn("[gitlab-milestone] No browser API available, aborting content script.");
+    console.warn(
+      "[gitlab-milestone] No browser API available, aborting content script.",
+    );
     return;
   }
 
@@ -29,6 +31,7 @@
     highlightInReview: true,
     muteDone: true,
     separateTaskCounts: false,
+    inReviewBoard: false,
   };
 
   let currentFlags = { ...DEFAULT_FLAGS };
@@ -67,12 +70,22 @@
     if (!header) {
       return { issueSpan: null, taskSpan: null, weightSpan: null };
     }
-    const issueIcon = header.querySelector('[data-testid="work-item-issue-icon"]');
-    const taskIcon = header.querySelector('[data-testid="work-item-task-icon"]');
+    const issueIcon = header.querySelector(
+      '[data-testid="work-item-issue-icon"]',
+    );
+    const taskIcon = header.querySelector(
+      '[data-testid="work-item-task-icon"]',
+    );
     const weightIcon = header.querySelector('[data-testid="weight-icon"]');
-    const issueSpan = issueIcon ? issueIcon.closest("span") || issueIcon.parentElement : null;
-    const taskSpan = taskIcon ? taskIcon.closest("span") || taskIcon.parentElement : null;
-    const weightSpan = weightIcon ? weightIcon.closest("span") || weightIcon.parentElement : null;
+    const issueSpan = issueIcon
+      ? issueIcon.closest("span") || issueIcon.parentElement
+      : null;
+    const taskSpan = taskIcon
+      ? taskIcon.closest("span") || taskIcon.parentElement
+      : null;
+    const weightSpan = weightIcon
+      ? weightIcon.closest("span") || weightIcon.parentElement
+      : null;
     return { issueSpan, taskSpan, weightSpan };
   };
 
@@ -82,7 +95,8 @@
   const ensureStatTextNode = (container) => {
     if (!container) return null;
     const existing = Array.from(container.childNodes).find(
-      (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim().length,
+      (node) =>
+        node.nodeType === Node.TEXT_NODE && node.textContent.trim().length,
     );
     if (existing) return existing;
     const textNode = document.createTextNode("");
@@ -111,13 +125,17 @@
     if (!card) return null;
 
     // Find the container that already holds the issue-count span.
-    const statsContainer = issueSpan ? issueSpan.parentElement : card.querySelector(
-      ".gl-ml-3.gl-shrink-0.gl-font-bold.gl-whitespace-nowrap.gl-text-subtle",
-    );
+    const statsContainer = issueSpan
+      ? issueSpan.parentElement
+      : card.querySelector(
+          ".gl-ml-3.gl-shrink-0.gl-font-bold.gl-whitespace-nowrap.gl-text-subtle",
+        );
     if (!statsContainer) return null;
 
     // Use any existing weight header span on the page as a template.
-    const templateWeightIcon = document.querySelector('[data-testid="weight-icon"]');
+    const templateWeightIcon = document.querySelector(
+      '[data-testid="weight-icon"]',
+    );
     const templateWeightSpan = templateWeightIcon
       ? templateWeightIcon.closest("span") || templateWeightIcon.parentElement
       : null;
@@ -138,19 +156,24 @@
    * `separateTaskCounts` is enabled and there is at least one task.
    */
   const ensureTaskHeaderSpanForList = (listElement) => {
-    const { issueSpan, taskSpan, weightSpan } = getColumnHeaderStatNodes(listElement);
+    const { issueSpan, taskSpan, weightSpan } =
+      getColumnHeaderStatNodes(listElement);
     if (taskSpan) return taskSpan;
 
     const card = listElement.closest(".gl-card");
     if (!card) return null;
 
-    const statsContainer = issueSpan ? issueSpan.parentElement : card.querySelector(
-      ".gl-ml-3.gl-shrink-0.gl-font-bold.gl-whitespace-nowrap.gl-text-subtle",
-    );
+    const statsContainer = issueSpan
+      ? issueSpan.parentElement
+      : card.querySelector(
+          ".gl-ml-3.gl-shrink-0.gl-font-bold.gl-whitespace-nowrap.gl-text-subtle",
+        );
     if (!statsContainer) return null;
 
     // Use any existing task icon in the page as the template for the header.
-    const templateTaskIcon = document.querySelector('[data-testid="work-item-task-icon"]');
+    const templateTaskIcon = document.querySelector(
+      '[data-testid="work-item-task-icon"]',
+    );
     if (!templateTaskIcon) return null;
 
     const newSpan = document.createElement("span");
@@ -181,7 +204,7 @@
     if (!node) return null;
 
     const candidates = node.querySelectorAll(
-      ".weight, .issuable-weight, [data-testid=\"weight-icon\"]",
+      '.weight, .issuable-weight, [data-testid="weight-icon"]',
     );
 
     for (const el of candidates) {
@@ -223,31 +246,41 @@
       "[gitlab-milestone] updateColumnStatistics: start, separateTaskCounts =",
       currentFlags.separateTaskCounts,
     );
-    const columnLists = issueBoard.querySelectorAll("ul.milestone-work_items-list");
+    const columnLists = issueBoard.querySelectorAll(
+      "ul.milestone-work_items-list",
+    );
     columnLists.forEach((list) => {
       // Count all work items that belong to this column, including tasks that
       // are visually grouped under a parent issue inside nested <ul> elements.
-      const workItems = Array.from(list.querySelectorAll("li")).filter((child) =>
-        child.querySelector(".issuable-number"),
+      const workItems = Array.from(list.querySelectorAll("li")).filter(
+        (child) => child.querySelector(".issuable-number"),
       );
 
       // Split into issue-vs-task for optional separate counting.
-      const issueOnlyItems = workItems.filter((item) => issueType(item) === "issue");
-      const taskOnlyItems = workItems.filter((item) => issueType(item) === "task");
+      const issueOnlyItems = workItems.filter(
+        (item) => issueType(item) === "issue",
+      );
+      const taskOnlyItems = workItems.filter(
+        (item) => issueType(item) === "task",
+      );
 
       const issueCount = currentFlags.separateTaskCounts
         ? issueOnlyItems.length
         : workItems.length;
-      const taskCount = currentFlags.separateTaskCounts ? taskOnlyItems.length : 0;
+      const taskCount = currentFlags.separateTaskCounts
+        ? taskOnlyItems.length
+        : 0;
 
-      const weightTotal = workItems.reduce((sum, item) => sum + getWorkItemWeight(item), 0);
-      let {
-        issueSpan,
-        taskSpan,
-        weightSpan,
-      } = getColumnHeaderStatNodes(list);
+      const weightTotal = workItems.reduce(
+        (sum, item) => sum + getWorkItemWeight(item),
+        0,
+      );
+      let { issueSpan, taskSpan, weightSpan } = getColumnHeaderStatNodes(list);
       const columnTitle =
-        list.closest(".gl-card")?.querySelector(".gl-card-header")?.innerText?.trim() || "";
+        list
+          .closest(".gl-card")
+          ?.querySelector(".gl-card-header")
+          ?.innerText?.trim() || "";
       console.log(
         "[gitlab-milestone] Column stats for",
         columnTitle,
@@ -288,11 +321,243 @@
   };
 
   /**
+   * Constants / helpers for the optional "In review" board.
+   */
+  const IN_REVIEW_LIST_ID = "work_items-list-in-review-extension";
+
+  /**
+   * Find a milestone column card by its header title text (e.g. "Completed").
+   */
+  const findColumnCardByTitle = (title) => {
+    const cards = issueBoard.querySelectorAll(
+      ".gl-col-md-4 .gl-card, .gl-card.gl-mb-5",
+    );
+    for (const card of cards) {
+      const headerTitle =
+        card.querySelector(".gl-card-header .gl-text-default") ||
+        card.querySelector(".gl-card-header");
+      if (!headerTitle) continue;
+
+      // First non-empty text node is the title ("Unstarted", "Ongoing", "Completed", ...)
+      const titleNode = Array.from(headerTitle.childNodes).find(
+        (n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim().length,
+      );
+      const text = titleNode
+        ? titleNode.textContent.trim()
+        : headerTitle.textContent.trim();
+      if (text === title) {
+        return card;
+      }
+    }
+    return null;
+  };
+
+  /**
+   * Ensure that an "In review" column exists between "Ongoing" and "Completed".
+   * Returns the <ul> element for the In-review list, or null if we cannot create it.
+   */
+  const ensureInReviewColumn = () => {
+    let list = issueBoard.querySelector(`#${IN_REVIEW_LIST_ID}`);
+    if (list) {
+      return list;
+    }
+
+    const completedCard = findColumnCardByTitle("Completed");
+    if (!completedCard) {
+      console.warn(
+        "[gitlab-milestone] Could not find 'Completed' column to clone for In review board.",
+      );
+      return null;
+    }
+
+    const completedCol =
+      completedCard.closest(".gl-col-md-4") || completedCard.parentElement;
+    if (!completedCol || !completedCol.parentElement) {
+      console.warn(
+        "[gitlab-milestone] 'Completed' column structure not as expected; aborting In review board creation.",
+      );
+      return null;
+    }
+
+    const inReviewCol = completedCol.cloneNode(true);
+    const inReviewCard = inReviewCol.querySelector(".gl-card") || inReviewCol;
+    const headerTitleContainer =
+      inReviewCard.querySelector(".gl-card-header .gl-text-default") ||
+      inReviewCard.querySelector(".gl-card-header");
+    const subtitleEl = inReviewCard.querySelector(
+      ".gl-card-header .gl-text-subtle.gl-text-sm, .gl-text-subtle.gl-text-sm",
+    );
+
+    // Set column title + subtitle
+    if (headerTitleContainer) {
+      // Replace first non-empty text node with "In review"
+      let titleNode = Array.from(headerTitleContainer.childNodes).find(
+        (n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim().length,
+      );
+      if (!titleNode) {
+        titleNode = document.createTextNode("");
+        headerTitleContainer.insertBefore(
+          titleNode,
+          headerTitleContainer.firstChild,
+        );
+      }
+      titleNode.textContent = "In review";
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent = "(in review)";
+    }
+
+    // Prepare the list container
+    list = inReviewCard.querySelector("ul.milestone-work_items-list");
+    if (!list) {
+      list = document.createElement("ul");
+      list.className = "content-list milestone-work_items-list";
+      inReviewCard.querySelector(".gl-card-body")?.appendChild(list);
+    }
+    list.id = IN_REVIEW_LIST_ID;
+    list.innerHTML = "";
+    list.dataset.extensionInReviewBoard = "true";
+
+    // Reset statistics in the new column header
+    const { issueSpan, taskSpan, weightSpan } = getColumnHeaderStatNodes(list);
+    if (issueSpan) setStatValue(issueSpan, 0);
+    if (taskSpan) setStatValue(taskSpan, 0);
+    if (weightSpan) setStatValue(weightSpan, 0);
+
+    // Insert the new column directly before "Completed" so it becomes second-to-last.
+    const boardRow = completedCol.parentElement;
+    boardRow.insertBefore(inReviewCol, completedCol);
+
+    // Make the row horizontally scrollable so columns do not wrap to a new line
+    // when the extra "In review" column is present.
+    boardRow.style.display = boardRow.style.display || "flex";
+    boardRow.style.flexWrap = "nowrap";
+    boardRow.style.overflowX = "auto";
+    boardRow.style.alignItems = "stretch";
+    Array.from(boardRow.children).forEach((col) => {
+      col.style.flex = "0 0 auto";
+    });
+
+    console.log(
+      "[gitlab-milestone] Inserted 'In review' column between Ongoing and Completed.",
+    );
+    return list;
+  };
+
+  /**
+   * Tear down the "In review" column and restore all moved issues to their original lists.
+   */
+  const teardownInReviewColumn = () => {
+    const list = issueBoard.querySelector(`#${IN_REVIEW_LIST_ID}`);
+    if (!list) return;
+
+    const items = Array.from(list.querySelectorAll("li"));
+    items.forEach((node) => {
+      if (
+        node.__originalListForInReview &&
+        node.__originalListForInReview.isConnected
+      ) {
+        node.__originalListForInReview.appendChild(node);
+      } else {
+        // Fallback: if we lost the original reference, just move back to the first milestone list.
+        const fallbackList = issueBoard.querySelector(
+          "ul.milestone-work_items-list",
+        );
+        if (fallbackList) {
+          fallbackList.appendChild(node);
+        }
+      }
+      delete node.__originalListForInReview;
+    });
+
+    const col = list.closest(".gl-col-md-4") || list.closest(".gl-card");
+    if (col && col.dataset.extensionInReviewBoard) {
+      col.remove();
+    } else if (col && list.dataset.extensionInReviewBoard) {
+      col.remove();
+    } else if (list.dataset.extensionInReviewBoard) {
+      list.remove();
+    }
+    console.log(
+      "[gitlab-milestone] Removed 'In review' column and restored issues.",
+    );
+  };
+
+  /**
+   * Update which issues belong in the "In review" board.
+   *
+   * Note: This operates at the *parent issue* level. If an issue is in review,
+   * its entire group of child tasks (if any) follows it into the In review board.
+   */
+  const updateInReviewBoard = () => {
+    if (!currentFlags.inReviewBoard) {
+      teardownInReviewColumn();
+      return;
+    }
+
+    const inReviewList = ensureInReviewColumn();
+    if (!inReviewList) {
+      return;
+    }
+
+    // First, return any items currently in the In-review list that no longer qualify.
+    const currentItems = Array.from(inReviewList.querySelectorAll("li"));
+    currentItems.forEach((node) => {
+      const stillInReview = issueIsInReview(node);
+      if (!stillInReview) {
+        if (
+          node.__originalListForInReview &&
+          node.__originalListForInReview.isConnected
+        ) {
+          node.__originalListForInReview.appendChild(node);
+        } else {
+          const fallbackList = issueBoard.querySelector(
+            "ul.milestone-work_items-list",
+          );
+          if (fallbackList) {
+            fallbackList.appendChild(node);
+          }
+        }
+        delete node.__originalListForInReview;
+      }
+    });
+
+    // Now, move qualifying work items into the In-review list.
+    const workItems = getAllWorkItemNodes();
+    workItems.forEach((node) => {
+      const type = issueType(node);
+
+      // When tasks are visually grouped under a parent issue, treat the entire
+      // category according to the parent issue's state. In that case, we never
+      // move the child task on its own – only the parent issue is moved.
+      const parentIssueNode = node.parentElement?.closest("li");
+      if (parentIssueNode) {
+        return;
+      }
+
+      const isInReview = issueIsInReview(node);
+      const currentlyInReviewList =
+        node.closest("ul.milestone-work_items-list") === inReviewList;
+
+      if (isInReview && !currentlyInReviewList) {
+        if (!node.__originalListForInReview) {
+          node.__originalListForInReview =
+            node.closest("ul.milestone-work_items-list") ||
+            issueBoard.querySelector("ul.milestone-work_items-list");
+        }
+        inReviewList.appendChild(node);
+      }
+    });
+  };
+
+  /**
    * Get the type of work item node.
    * Returns 'issue' or 'task'.
    */
   const issueType = (node) => {
-    const icon = node.querySelector("[data-testid]")?.getAttribute("data-testid");
+    const icon = node
+      .querySelector("[data-testid]")
+      ?.getAttribute("data-testid");
     const type = icon === "work-item-task-icon" ? "task" : "issue";
     return type;
   };
@@ -352,7 +617,9 @@
    * Get all "issue" nodes in the board.
    */
   const getIssueNodes = () => {
-    const issues = getAllWorkItemNodes().filter((node) => issueType(node) === "issue");
+    const issues = getAllWorkItemNodes().filter(
+      (node) => issueType(node) === "issue",
+    );
     return issues;
   };
 
@@ -374,7 +641,10 @@
 
       // If this node was previously moved under a parent issue, restore it
       // to its original column/list. These are always *task* nodes.
-      if (node.__originalParent && node.parentElement !== node.__originalParent) {
+      if (
+        node.__originalParent &&
+        node.parentElement !== node.__originalParent
+      ) {
         console.log(
           "[gitlab-milestone] Restoring task to original parent",
           issueId(node),
@@ -396,20 +666,26 @@
         delete node.__childrenGrouped;
         delete node.__groupingInProgress;
       }
+      // Clear any "In review" board tracking data; the board logic will re-apply as needed.
+      if (
+        node.__originalListForInReview &&
+        node.__originalListForInReview !== node.parentElement
+      ) {
+        node.__originalListForInReview.appendChild(node);
+        delete node.__originalListForInReview;
+      }
     });
 
     // Clean up any empty <ul> elements we created for grouping.
-    issueBoard
-      .querySelectorAll("ul")
-      .forEach((ul) => {
-        if (
-          !ul.classList.contains("milestone-work_items-list") &&
-          ul.children.length === 0
-        ) {
-          console.log("[gitlab-milestone] Removing empty grouping <ul>");
-          ul.remove();
-        }
-      });
+    issueBoard.querySelectorAll("ul").forEach((ul) => {
+      if (
+        !ul.classList.contains("milestone-work_items-list") &&
+        ul.children.length === 0
+      ) {
+        console.log("[gitlab-milestone] Removing empty grouping <ul>");
+        ul.remove();
+      }
+    });
 
     console.log("[gitlab-milestone] resetStylesAndGrouping: end");
     updateColumnStatistics();
@@ -433,12 +709,17 @@
       console.log(
         "[gitlab-milestone] Skipping grouping for issue (already grouped/in progress)",
         issueId(node),
-        { grouped: !!node.__childrenGrouped, inProgress: !!node.__groupingInProgress },
+        {
+          grouped: !!node.__childrenGrouped,
+          inProgress: !!node.__groupingInProgress,
+        },
       );
       return;
     }
 
-    console.log("[gitlab-milestone] Grouping children for issue", issueId(node));
+    const id = issueId(node);
+    console.time(`[gitlab-milestone][perf] groupSubtasksUnderIssue #${id}`);
+    console.log("[gitlab-milestone] Grouping children for issue", id);
     node.__groupingInProgress = true;
 
     browser.runtime.sendMessage(
@@ -487,8 +768,7 @@
               // Remove any previous highlight from the parent node
               node.style.backgroundColor = "";
               groupingSucceeded = true;
-            }
-            else {
+            } else {
               console.log(
                 "[gitlab-milestone] Child task not present in this milestone, skipping",
                 childIssue.iid,
@@ -505,8 +785,11 @@
           node.__groupingInProgress = false;
           console.log(
             "[gitlab-milestone] Finished grouping children for issue",
-            issueId(node),
+            id,
             { grouped: !!node.__childrenGrouped },
+          );
+          console.timeEnd(
+            `[gitlab-milestone][perf] groupSubtasksUnderIssue #${id}`,
           );
         }
       },
@@ -517,7 +800,11 @@
    * Apply visual styles and optional grouping to all issues.
    */
   const processAllIssues = () => {
-    console.log("[gitlab-milestone] processAllIssues: start, flags:", currentFlags);
+    console.time("[gitlab-milestone][perf] processAllIssues");
+    console.log(
+      "[gitlab-milestone] processAllIssues: start, flags:",
+      currentFlags,
+    );
     const nodes = getAllWorkItemNodes();
 
     nodes.forEach((node) => {
@@ -563,13 +850,16 @@
       }
     });
     console.log("[gitlab-milestone] processAllIssues: end");
+    updateInReviewBoard();
     updateColumnStatistics();
+    console.timeEnd("[gitlab-milestone][perf] processAllIssues");
   };
 
   /**
    * MutationObserver callback to process current issues/tasks list.
    */
   const handleMutations = (mutationList) => {
+    console.time("[gitlab-milestone][perf] handleMutations");
     console.log(
       "[gitlab-milestone] handleMutations: received mutations",
       mutationList.length,
@@ -584,6 +874,7 @@
       );
       processAllIssues();
     }
+    console.timeEnd("[gitlab-milestone][perf] handleMutations");
   };
 
   /**
@@ -602,15 +893,21 @@
   };
 
   // Observe children of the issueBoard for DOM changes
-  const observerConfig = { childList: true, subtree: true };
+  const observerConfig = { childList: true };
   const observer = new MutationObserver(handleMutations);
   observer.observe(issueBoard, observerConfig);
-  console.log("[gitlab-milestone] MutationObserver attached with config:", observerConfig);
+  console.log(
+    "[gitlab-milestone] MutationObserver attached with config:",
+    observerConfig,
+  );
 
   // Listen for messages from popup to immediately re-apply flags
   browser.runtime.onMessage.addListener((message) => {
     if (message && message.type === "flagsUpdated" && message.flags) {
-      console.log("[gitlab-milestone] Received flagsUpdated message:", message.flags);
+      console.log(
+        "[gitlab-milestone] Received flagsUpdated message:",
+        message.flags,
+      );
       const oldFlags = currentFlags;
       const newFlags = Object.assign({}, DEFAULT_FLAGS, message.flags);
       currentFlags = newFlags;
@@ -631,7 +928,11 @@
           );
           resetStylesAndGrouping();
           processAllIssues();
-        } else if (oldFlags && !oldFlags.groupChildren && newFlags.groupChildren) {
+        } else if (
+          oldFlags &&
+          !oldFlags.groupChildren &&
+          newFlags.groupChildren
+        ) {
           // Grouping turned ON: we don't need to ungroup (nothing should be
           // grouped), just process issues so grouping is applied once according
           // to the new flags.
@@ -658,8 +959,7 @@
       }
 
       previousFlags = newFlags;
-    }
-    else {
+    } else {
       console.log("[gitlab-milestone] Ignoring runtime message", message);
     }
   });
