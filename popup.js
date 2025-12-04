@@ -14,12 +14,16 @@
   const DEFAULT_FLAGS = {
     groupChildren: true,
     highlightInProgress: true,
+    highlightInReview: true,
     muteDone: true,
   };
 
   const groupChildrenCheckbox = document.getElementById("flag-group-children");
   const highlightCheckbox = document.getElementById(
     "flag-highlight-in-progress",
+  );
+  const highlightInReviewCheckbox = document.getElementById(
+    "flag-highlight-in-review",
   );
   const muteDoneCheckbox = document.getElementById("flag-mute-done");
 
@@ -29,6 +33,7 @@
       const flags = Object.assign({}, DEFAULT_FLAGS, result);
       groupChildrenCheckbox.checked = !!flags.groupChildren;
       highlightCheckbox.checked = !!flags.highlightInProgress;
+       highlightInReviewCheckbox.checked = !!flags.highlightInReview;
       muteDoneCheckbox.checked = !!flags.muteDone;
     });
   };
@@ -37,6 +42,7 @@
     const flags = {
       groupChildren: groupChildrenCheckbox.checked,
       highlightInProgress: highlightCheckbox.checked,
+      highlightInReview: highlightInReviewCheckbox.checked,
       muteDone: muteDoneCheckbox.checked,
     };
 
@@ -62,8 +68,7 @@
   groupChildrenCheckbox.addEventListener("change", persistFlags);
   highlightCheckbox.addEventListener("change", persistFlags);
   muteDoneCheckbox.addEventListener("change", persistFlags);
+  highlightInReviewCheckbox.addEventListener("change", persistFlags);
 
   loadFlags();
 })();
-
-

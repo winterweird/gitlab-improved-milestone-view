@@ -26,6 +26,7 @@
   const DEFAULT_FLAGS = {
     groupChildren: true,
     highlightInProgress: true,
+    highlightInReview: true,
     muteDone: true,
   };
 
@@ -68,6 +69,21 @@
   const issueStatus = (node) => {
     const status = node.querySelector(".work-item-status");
     return status ? status.textContent.trim() : "";
+  };
+
+  /**
+   * Determine whether an issue/work item is in "In-review" stage based on its labels.
+   *
+   * We look for the scoped label link that GitLab renders for the
+   * "stage::In-review" label. The sample markup looks like:
+   *
+   * <a class="gl-link gl-label-link has-tooltip"
+   *    href="/.../issues?label_name=stage%3A%3AIn-review&amp;...">
+   */
+  const issueIsInReview = (node) => {
+    return !!node.querySelector(
+      'a.gl-label-link[href*="label_name=stage%3A%3AIn-review"]',
+    );
   };
 
   /**
@@ -268,6 +284,7 @@
     nodes.forEach((node) => {
       const status = issueStatus(node);
       const id = issueId(node);
+      const isIssueNode = issueType(node) === "issue";
       console.log("[gitlab-milestone] Processing issue", id, "status:", status);
 
       // Style: mute done
@@ -277,29 +294,32 @@
         node.style.opacity = "";
       }
 
-      // Style: highlight in progress
-      if (currentFlags.highlightInProgress && status === "In progress") {
-        const isIssueNode = issueType(node) === "issue";
-        // If this is a parent issue that currently has grouped child tasks,
-        // avoid highlighting it; otherwise all children would visually appear
-        // to be "in progress" as well due to the shared background.
-        const hasGroupedChildren =
-          isIssueNode && !!node.querySelector("ul li");
+      // Determine whether this item is a parent with grouped children.
+      // For such parent issues, we avoid applying any background highlight
+      // so that children do not visually appear to share the same state.
+      const hasGroupedChildren = isIssueNode && !!node.querySelector("ul li");
 
-        if (!hasGroupedChildren) {
+      // Style: highlight "In review" or "In progress"
+      const shouldHighlightInReview =
+        currentFlags.highlightInReview && issueIsInReview(node);
+      const shouldHighlightInProgress =
+        currentFlags.highlightInProgress && status === "In progress";
+
+      if (!hasGroupedChildren) {
+        // If both conditions apply, "In review" takes precedence.
+        if (shouldHighlightInReview) {
+          node.style.backgroundColor = "rgba(88, 67, 173, 0.16)";
+        } else if (shouldHighlightInProgress) {
           node.style.backgroundColor = "lightgreen";
         } else {
           node.style.backgroundColor = "";
         }
       } else {
-        // When highlight is disabled (or status changes), always clear the
-        // background color. Grouping no longer relies on this property, so
-        // we don't need to preserve it for grouped items.
         node.style.backgroundColor = "";
       }
 
       // Group subtasks under issues
-      if (currentFlags.groupChildren && issueType(node) === "issue") {
+      if (currentFlags.groupChildren && isIssueNode) {
         groupSubtasksUnderIssue(node);
       }
     });
