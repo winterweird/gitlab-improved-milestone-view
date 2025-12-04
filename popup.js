@@ -16,6 +16,7 @@
     highlightInProgress: true,
     highlightInReview: true,
     muteDone: true,
+    separateTaskCounts: false,
   };
 
   const groupChildrenCheckbox = document.getElementById("flag-group-children");
@@ -26,15 +27,20 @@
     "flag-highlight-in-review",
   );
   const muteDoneCheckbox = document.getElementById("flag-mute-done");
+  const separateTaskCountsCheckbox = document.getElementById(
+    "flag-separate-task-counts",
+  );
 
   const loadFlags = () => {
     // Use storage.local so flags persist reliably for unpacked/temporary installs.
     browserApi.storage.local.get(DEFAULT_FLAGS, (result) => {
       const flags = Object.assign({}, DEFAULT_FLAGS, result);
+      console.log("[gitlab-milestone][popup] Loaded flags:", flags);
       groupChildrenCheckbox.checked = !!flags.groupChildren;
       highlightCheckbox.checked = !!flags.highlightInProgress;
-       highlightInReviewCheckbox.checked = !!flags.highlightInReview;
+      highlightInReviewCheckbox.checked = !!flags.highlightInReview;
       muteDoneCheckbox.checked = !!flags.muteDone;
+      separateTaskCountsCheckbox.checked = !!flags.separateTaskCounts;
     });
   };
 
@@ -44,7 +50,10 @@
       highlightInProgress: highlightCheckbox.checked,
       highlightInReview: highlightInReviewCheckbox.checked,
       muteDone: muteDoneCheckbox.checked,
+      separateTaskCounts: separateTaskCountsCheckbox.checked,
     };
+
+    console.log("[gitlab-milestone][popup] Persisting flags:", flags);
 
     // Persist to storage.local so the popup restores the last-used values
     // even across browser restarts and temporary extension reloads.
@@ -69,6 +78,7 @@
   highlightCheckbox.addEventListener("change", persistFlags);
   muteDoneCheckbox.addEventListener("change", persistFlags);
   highlightInReviewCheckbox.addEventListener("change", persistFlags);
+  separateTaskCountsCheckbox.addEventListener("change", persistFlags);
 
   loadFlags();
 })();

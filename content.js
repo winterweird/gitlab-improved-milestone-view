@@ -28,6 +28,7 @@
     highlightInProgress: true,
     highlightInReview: true,
     muteDone: true,
+    separateTaskCounts: false,
   };
 
   let currentFlags = { ...DEFAULT_FLAGS };
@@ -55,22 +56,24 @@
   const getTaskNode = (iid) => getWorkItemNode("task", iid);
 
   /**
-   * Locate the <span> containers that display issue/weight counts for a column.
+   * Locate the <span> containers that display issue/task/weight counts for a column.
    */
   const getColumnHeaderStatNodes = (listElement) => {
     const card = listElement.closest(".gl-card");
     if (!card) {
-      return { issueSpan: null, weightSpan: null };
+      return { issueSpan: null, taskSpan: null, weightSpan: null };
     }
     const header = card.querySelector(".gl-card-header");
     if (!header) {
-      return { issueSpan: null, weightSpan: null };
+      return { issueSpan: null, taskSpan: null, weightSpan: null };
     }
     const issueIcon = header.querySelector('[data-testid="work-item-issue-icon"]');
+    const taskIcon = header.querySelector('[data-testid="work-item-task-icon"]');
     const weightIcon = header.querySelector('[data-testid="weight-icon"]');
     const issueSpan = issueIcon ? issueIcon.closest("span") || issueIcon.parentElement : null;
+    const taskSpan = taskIcon ? taskIcon.closest("span") || taskIcon.parentElement : null;
     const weightSpan = weightIcon ? weightIcon.closest("span") || weightIcon.parentElement : null;
-    return { issueSpan, weightSpan };
+    return { issueSpan, taskSpan, weightSpan };
   };
 
   /**
@@ -121,10 +124,51 @@
     if (!templateWeightSpan) return null;
 
     const newSpan = templateWeightSpan.cloneNode(true);
-    console.log("NEW SPAN:", newSpan.innerText);
-    setStatValue(newSpan, 0);
-    console.log("NEW SPAN AFTER SETTING VALUE:", newSpan.innerText);
+    console.log(
+      "[gitlab-milestone] Created new weight header span for column:",
+      card.querySelector(".gl-card-header")?.innerText?.trim(),
+    );
     statsContainer.appendChild(newSpan);
+    return newSpan;
+  };
+
+  /**
+   * Ensure the column header has a task-count <span> (with task icon) and
+   * return it. We create it lazily so that we only show task counts when
+   * `separateTaskCounts` is enabled and there is at least one task.
+   */
+  const ensureTaskHeaderSpanForList = (listElement) => {
+    const { issueSpan, taskSpan, weightSpan } = getColumnHeaderStatNodes(listElement);
+    if (taskSpan) return taskSpan;
+
+    const card = listElement.closest(".gl-card");
+    if (!card) return null;
+
+    const statsContainer = issueSpan ? issueSpan.parentElement : card.querySelector(
+      ".gl-ml-3.gl-shrink-0.gl-font-bold.gl-whitespace-nowrap.gl-text-subtle",
+    );
+    if (!statsContainer) return null;
+
+    // Use any existing task icon in the page as the template for the header.
+    const templateTaskIcon = document.querySelector('[data-testid="work-item-task-icon"]');
+    if (!templateTaskIcon) return null;
+
+    const newSpan = document.createElement("span");
+    // Mirror spacing behavior of the weight span.
+    newSpan.className = "gl-ml-3";
+    newSpan.appendChild(templateTaskIcon.cloneNode(true));
+
+    // Insert task count before the weight span if present; otherwise append.
+    if (weightSpan && weightSpan.parentElement === statsContainer) {
+      statsContainer.insertBefore(newSpan, weightSpan);
+    } else {
+      statsContainer.appendChild(newSpan);
+    }
+
+    console.log(
+      "[gitlab-milestone] Created new task header span for column:",
+      card.querySelector(".gl-card-header")?.innerText?.trim(),
+    );
     return newSpan;
   };
 
@@ -175,6 +219,10 @@
    * Count top-level work items within each column and update header stats accordingly.
    */
   const updateColumnStatistics = () => {
+    console.log(
+      "[gitlab-milestone] updateColumnStatistics: start, separateTaskCounts =",
+      currentFlags.separateTaskCounts,
+    );
     const columnLists = issueBoard.querySelectorAll("ul.milestone-work_items-list");
     columnLists.forEach((list) => {
       // Count all work items that belong to this column, including tasks that
@@ -182,10 +230,46 @@
       const workItems = Array.from(list.querySelectorAll("li")).filter((child) =>
         child.querySelector(".issuable-number"),
       );
-      const issueCount = workItems.length;
+
+      // Split into issue-vs-task for optional separate counting.
+      const issueOnlyItems = workItems.filter((item) => issueType(item) === "issue");
+      const taskOnlyItems = workItems.filter((item) => issueType(item) === "task");
+
+      const issueCount = currentFlags.separateTaskCounts
+        ? issueOnlyItems.length
+        : workItems.length;
+      const taskCount = currentFlags.separateTaskCounts ? taskOnlyItems.length : 0;
+
       const weightTotal = workItems.reduce((sum, item) => sum + getWorkItemWeight(item), 0);
       const { issueSpan } = getColumnHeaderStatNodes(list);
-      let { weightSpan } = getColumnHeaderStatNodes(list);
+      let { taskSpan, weightSpan } = getColumnHeaderStatNodes(list);
+      const columnTitle =
+        list.closest(".gl-card")?.querySelector(".gl-card-header")?.innerText?.trim() || "";
+      console.log(
+        "[gitlab-milestone] Column stats for",
+        columnTitle,
+        "→ issues:",
+        issueCount,
+        "tasks:",
+        taskCount,
+        "weightTotal:",
+        weightTotal,
+      );
+
+      // Lazily create the task header span (with icon) if separate counting
+      // is enabled and this column has at least one task.
+      if (currentFlags.separateTaskCounts) {
+        if (taskCount > 0 && !taskSpan) {
+          taskSpan = ensureTaskHeaderSpanForList(list);
+        }
+        if (taskSpan) {
+          taskSpan.style.display = "";
+          setStatValue(taskSpan, taskCount);
+        }
+      } else if (taskSpan) {
+        // When separate counting is disabled, hide any existing task span.
+        taskSpan.style.display = "none";
+      }
 
       // Lazily create the weight header span (with icon) if we need to show
       // a non-zero total but the column has never displayed weight before.
@@ -206,7 +290,8 @@
    */
   const issueType = (node) => {
     const icon = node.querySelector("[data-testid]")?.getAttribute("data-testid");
-    return icon === "issue-type-task-icon" ? "task" : "issue";
+    const type = icon === "work-item-task-icon" ? "task" : "issue";
+    return type;
   };
 
   /**
@@ -426,7 +511,7 @@
    */
   const processAllIssues = () => {
     console.log("[gitlab-milestone] processAllIssues: start, flags:", currentFlags);
-    const nodes = getIssueNodes();
+    const nodes = getAllWorkItemNodes();
 
     nodes.forEach((node) => {
       const status = issueStatus(node);
@@ -522,6 +607,10 @@
       const oldFlags = currentFlags;
       const newFlags = Object.assign({}, DEFAULT_FLAGS, message.flags);
       currentFlags = newFlags;
+      console.log(
+        "[gitlab-milestone] Updated currentFlags in content script:",
+        currentFlags,
+      );
 
       const groupChildrenChanged =
         !oldFlags || oldFlags.groupChildren !== newFlags.groupChildren;
