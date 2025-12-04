@@ -55,6 +55,152 @@
   const getTaskNode = (iid) => getWorkItemNode("task", iid);
 
   /**
+   * Locate the <span> containers that display issue/weight counts for a column.
+   */
+  const getColumnHeaderStatNodes = (listElement) => {
+    const card = listElement.closest(".gl-card");
+    if (!card) {
+      return { issueSpan: null, weightSpan: null };
+    }
+    const header = card.querySelector(".gl-card-header");
+    if (!header) {
+      return { issueSpan: null, weightSpan: null };
+    }
+    const issueIcon = header.querySelector('[data-testid="work-item-issue-icon"]');
+    const weightIcon = header.querySelector('[data-testid="weight-icon"]');
+    const issueSpan = issueIcon ? issueIcon.closest("span") || issueIcon.parentElement : null;
+    const weightSpan = weightIcon ? weightIcon.closest("span") || weightIcon.parentElement : null;
+    return { issueSpan, weightSpan };
+  };
+
+  /**
+   * Ensure we have a text node next to the icon so we can update the numeric value.
+   */
+  const ensureStatTextNode = (container) => {
+    if (!container) return null;
+    const existing = Array.from(container.childNodes).find(
+      (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim().length,
+    );
+    if (existing) return existing;
+    const textNode = document.createTextNode("");
+    container.appendChild(textNode);
+    return textNode;
+  };
+
+  const setStatValue = (container, value) => {
+    if (!container) return;
+    const textNode = ensureStatTextNode(container);
+    if (textNode) {
+      textNode.textContent = ` ${value}`;
+    }
+  };
+
+  /**
+   * Ensure the column header has a weight <span> (with icon) and return it.
+   * We create it lazily by cloning an existing weight header span elsewhere
+   * on the page so we match GitLab's native markup.
+   */
+  const ensureWeightHeaderSpanForList = (listElement) => {
+    const { issueSpan, weightSpan } = getColumnHeaderStatNodes(listElement);
+    if (weightSpan) return weightSpan;
+
+    const card = listElement.closest(".gl-card");
+    if (!card) return null;
+
+    // Find the container that already holds the issue-count span.
+    const statsContainer = issueSpan ? issueSpan.parentElement : card.querySelector(
+      ".gl-ml-3.gl-shrink-0.gl-font-bold.gl-whitespace-nowrap.gl-text-subtle",
+    );
+    if (!statsContainer) return null;
+
+    // Use any existing weight header span on the page as a template.
+    const templateWeightIcon = document.querySelector('[data-testid="weight-icon"]');
+    const templateWeightSpan = templateWeightIcon
+      ? templateWeightIcon.closest("span") || templateWeightIcon.parentElement
+      : null;
+    if (!templateWeightSpan) return null;
+
+    const newSpan = templateWeightSpan.cloneNode(true);
+    console.log("NEW SPAN:", newSpan.innerText);
+    setStatValue(newSpan, 0);
+    console.log("NEW SPAN AFTER SETTING VALUE:", newSpan.innerText);
+    statsContainer.appendChild(newSpan);
+    return newSpan;
+  };
+
+  /**
+   * Find the weight container that belongs to THIS work item node, not any
+   * nested child task. We do this by ensuring the closest <li> for the
+   * candidate element is exactly the node we were given.
+   */
+  const findOwnWeightContainer = (node) => {
+    if (!node) return null;
+
+    const candidates = node.querySelectorAll(
+      ".weight, .issuable-weight, [data-testid=\"weight-icon\"]",
+    );
+
+    for (const el of candidates) {
+      const ownerLi = el.closest("li");
+      if (ownerLi !== node) {
+        continue;
+      }
+
+      // If the match is the weight icon itself, return its enclosing span;
+      // otherwise the element itself is already the container.
+      if (el.getAttribute("data-testid") === "weight-icon") {
+        return el.closest("span") || el.parentElement;
+      }
+      return el;
+    }
+
+    return null;
+  };
+
+  /**
+   * Extract the weight number rendered for a work item node. This only counts
+   * weight actually applied to the node itself (issue or task), not any of
+   * its nested child tasks.
+   */
+  const getWorkItemWeight = (node) => {
+    if (!node) return 0;
+    const weightContainer = findOwnWeightContainer(node);
+    if (!weightContainer) return 0;
+    const weightText = weightContainer.textContent || "";
+    const match = weightText.replace(/\u00a0/g, " ").match(/-?\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+  };
+
+  /**
+   * Count top-level work items within each column and update header stats accordingly.
+   */
+  const updateColumnStatistics = () => {
+    const columnLists = issueBoard.querySelectorAll("ul.milestone-work_items-list");
+    columnLists.forEach((list) => {
+      // Count all work items that belong to this column, including tasks that
+      // are visually grouped under a parent issue inside nested <ul> elements.
+      const workItems = Array.from(list.querySelectorAll("li")).filter((child) =>
+        child.querySelector(".issuable-number"),
+      );
+      const issueCount = workItems.length;
+      const weightTotal = workItems.reduce((sum, item) => sum + getWorkItemWeight(item), 0);
+      const { issueSpan } = getColumnHeaderStatNodes(list);
+      let { weightSpan } = getColumnHeaderStatNodes(list);
+
+      // Lazily create the weight header span (with icon) if we need to show
+      // a non-zero total but the column has never displayed weight before.
+      if (weightTotal > 0 && !weightSpan) {
+        weightSpan = ensureWeightHeaderSpanForList(list);
+      }
+
+      setStatValue(issueSpan, issueCount);
+      if (weightSpan) {
+        setStatValue(weightSpan, weightTotal);
+      }
+    });
+  };
+
+  /**
    * Get the type of work item node.
    * Returns 'issue' or 'task'.
    */
@@ -174,6 +320,7 @@
       });
 
     console.log("[gitlab-milestone] resetStylesAndGrouping: end");
+    updateColumnStatistics();
   };
 
   /**
@@ -324,6 +471,7 @@
       }
     });
     console.log("[gitlab-milestone] processAllIssues: end");
+    updateColumnStatistics();
   };
 
   /**
