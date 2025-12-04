@@ -313,11 +313,15 @@
    *
    * <a class="gl-link gl-label-link has-tooltip"
    *    href="/.../issues?label_name=stage%3A%3AIn-review&amp;...">
+   *
+   * If the label was on a child issue it doesn't count.
    */
   const issueIsInReview = (node) => {
-    return !!node.querySelector(
+    const inReviewLabel = node.querySelector(
       'a.gl-label-link[href*="label_name=stage%3A%3AIn-review"]',
     );
+
+    return inReviewLabel?.closest("li") === node;
   };
 
   /**
