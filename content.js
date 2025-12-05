@@ -586,7 +586,9 @@
       'a.gl-label-link[href*="label_name=stage%3A%3AIn-review"]',
     );
 
-    return inReviewLabel?.closest("li") === node;
+    return (
+      inReviewLabel?.closest("li") === node && issueStatus(node) !== "Done"
+    );
   };
 
   /**
